@@ -26,9 +26,11 @@ app.post('/signin', function(req, res){
         const token=jwt.sign({
             username:username
         }, JWT_SECRET);
+        res.header("token", token)
         res.json({
             token:token
         })
+       
     }else{
         res.send({
             message:"Credentails incorrect."
@@ -36,12 +38,32 @@ app.post('/signin', function(req, res){
         return
     }
 })
-app.get('/me', function(req, res){
-const token=req.headers.token;
-const decodedData=jwt.verify(token, JWT_SECRET)
+function auth(req, res, next){
+    const token=req.headers.token;
+    const decodedData=jwt.verify(token, JWT_SECRET);
+    if(decodedData.username){
+        next();
+    }else{
+        res.send({
+            message:"You are not logged in."
+        })
+    }
+}
+app.get('/me', auth, function(req, res){
+    try{
 const username=decodedData.username
 const finduser=users.find(user=>user.username===username);
-
+if(finduser){
+    res.send({
+        username:finduser.username,
+        password:finduser.password
+    })
+}else{
+    res.status(401).send({ message: "Unauthorized" });
+} }
+catch(err){
+    res.status(401).send({ message: "Invalid token" });
+}
 })
 
 app.listen(2000)
